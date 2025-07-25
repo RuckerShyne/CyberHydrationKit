@@ -1,0 +1,33 @@
+{
+  "ignorePatterns": [
+    {
+      "pattern": "^http://localhost"
+    },
+    {
+      "pattern": "^http://CYBER-MDT01"
+    },
+    {
+      "pattern": "^http://SOC-"
+    },
+    {
+      "pattern": "^http://HUNT-"
+    },
+    {
+      "pattern": "^http://IR-"
+    },
+    {
+      "pattern": "^http://RED-"
+    }
+  ],
+  "replacementPatterns": [
+    {
+      "pattern": "^/",
+      "replacement": "https://github.com/RuckerShyne/CyberHydrationKit/blob/main/"
+    }
+  ],
+  "timeout": "20s",
+  "retryOn429": true,
+  "retryCount": 3,
+  "fallbackRetryDelay": "30s",
+  "aliveStatusCodes": [200, 206, 301, 302]
+}

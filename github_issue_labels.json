@@ -1,0 +1,118 @@
+# GitHub Issue Labels Configuration
+# Add these labels to your GitHub repository for better contributor onboarding
+
+[
+  {
+    "name": "good first issue",
+    "color": "7057ff",
+    "description": "Good for newcomers - well-defined tasks with clear scope"
+  },
+  {
+    "name": "first-timers-only",
+    "color": "159818", 
+    "description": "Reserved for people who haven't contributed before"
+  },
+  {
+    "name": "help wanted",
+    "color": "008672",
+    "description": "Extra attention is needed - community input welcome"
+  },
+  {
+    "name": "documentation",
+    "color": "0075ca",
+    "description": "Improvements or additions to documentation"
+  },
+  {
+    "name": "enhancement",
+    "color": "a2eeef",
+    "description": "New feature or request"
+  },
+  {
+    "name": "bug",
+    "color": "d73a4a",
+    "description": "Something isn't working"
+  },
+  {
+    "name": "security",
+    "color": "ee0701",
+    "description": "Security-related issues or improvements"
+  },
+  {
+    "name": "fsm-learning",
+    "color": "fbca04",
+    "description": "Related to FSM adaptive learning platform"
+  },
+  {
+    "name": "platform-local",
+    "color": "d4c5f9",
+    "description": "Local Hyper-V/VMware deployment issues"
+  },
+  {
+    "name": "platform-proxmox", 
+    "color": "d4c5f9",
+    "description": "Proxmox bare metal deployment issues"
+  },
+  {
+    "name": "platform-cloud",
+    "color": "d4c5f9", 
+    "description": "Cloud deployment (AWS/GCP/Azure) issues"
+  },
+  {
+    "name": "domain-soc",
+    "color": "c2e0c6",
+    "description": "SOC analyst training domain"
+  },
+  {
+    "name": "domain-ir",
+    "color": "c2e0c6",
+    "description": "Incident response domain"
+  },
+  {
+    "name": "domain-redteam",
+    "color": "c2e0c6", 
+    "description": "Red team operations domain"
+  },
+  {
+    "name": "domain-threathunt",
+    "color": "c2e0c6",
+    "description": "Threat hunting domain"
+  },
+  {
+    "name": "scenario-automation",
+    "color": "fef2c0",
+    "description": "Automated scenario generation and orchestration"
+  },
+  {
+    "name": "community",
+    "color": "ff6d1f",
+    "description": "Community building and contributor experience"
+  }
+]
+
+# Example "Good First Issue" Ideas for Your Repository:
+
+## Documentation Improvements
+- Add screenshots to FSM dashboard documentation
+- Create troubleshooting guide for common network issues
+- Write deployment guide for specific cloud providers
+- Translate README sections to other languages
+
+## Easy Code Contributions  
+- Add new health check validations
+- Create additional configuration templates
+- Implement new scenario types
+- Add support for additional security tools
+
+## Community Enhancements
+- Create beginner-friendly video tutorials
+- Design project logos and visual assets
+- Write blog posts about deployment experiences
+- Create social media content for project promotion
+
+# How to Apply These Labels:
+
+1. Go to your GitHub repository
+2. Navigate to Issues tab → Labels
+3. Create new labels using the colors and descriptions above
+4. Apply appropriate labels to existing and new issues
+5. Use "good first issue" and "first-timers-only" to attract new contributors

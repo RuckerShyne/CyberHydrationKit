@@ -1,0 +1,249 @@
+{
+  "name": "CI/CD Pipeline Cybersecurity Lab",
+  "description": "Automated deployment configuration for CI/CD pipelines",
+  "version": "2.0.0",
+  "platform": {
+    "type": "Local",
+    "hypervisor": "Hyper-V",
+    "ephemeral": true,
+    "requirements": {
+      "minimumRAM": 32,
+      "minimumStorage": 500,
+      "cleanupAfterRun": true
+    }
+  },
+  "domains": ["SOC"],
+  "pipeline": {
+    "stages": [
+      {
+        "name": "validate",
+        "steps": [
+          {
+            "name": "Check Prerequisites",
+            "script": "./scripts/Test-Prerequisites.ps1",
+            "timeout": 5,
+            "continueOnError": false
+          },
+          {
+            "name": "Validate Configuration",
+            "script": "./scripts/Test-Configuration.ps1 -ConfigFile $env:CONFIG_FILE",
+            "timeout": 5,
+            "continueOnError": false
+          }
+        ]
+      },
+      {
+        "name": "build",
+        "steps": [
+          {
+            "name": "Create Deployment Share",
+            "script": "./scripts/New-CyberHydrationSetup.ps1 -Platform $env:PLATFORM -Domains $env:DOMAINS",
+            "timeout": 30,
+            "continueOnError": false
+          },
+          {
+            "name": "Generate ISO",
+            "script": "./scripts/Update-DeploymentMedia.ps1",
+            "timeout": 20,
+            "continueOnError": false
+          }
+        ],
+        "artifacts": [
+          {
+            "name": "deployment-iso",
+            "path": "C:\\CyberLab\\ISO\\*.iso",
+            "retention": 7
+          }
+        ]
+      },
+      {
+        "name": "deploy",
+        "steps": [
+          {
+            "name": "Deploy Base Infrastructure",
+            "script": "./scripts/Deploy-CyberLab.ps1 -ConfigFile ./config/ci-cd-config.json -NoPrompt",
+            "timeout": 120,
+            "continueOnError": false
+          }
+        ]
+      },
+      {
+        "name": "test",
+        "steps": [
+          {
+            "name": "Health Check",
+            "script": "./scripts/Test-CyberLabHealth.ps1 -Full -AutoFix",
+            "timeout": 30,
+            "continueOnError": false
+          },
+          {
+            "name": "Security Validation",
+            "script": "./scripts/Test-SecurityTools.ps1",
+            "timeout": 15,
+            "continueOnError": false
+          },
+          {
+            "name": "Scenario Validation",
+            "script": "./scripts/Test-Scenarios.ps1 -Scenario BasicAlertTriage",
+            "timeout": 30,
+            "continueOnError": true
+          }
+        ],
+        "reports": [
+          {
+            "name": "test-results",
+            "format": "junit",
+            "path": "./Reports/test-results.xml"
+          },
+          {
+            "name": "health-report",
+            "format": "json",
+            "path": "./Reports/health-report.json"
+          }
+        ]
+      },
+      {
+        "name": "cleanup",
+        "condition": "always",
+        "steps": [
+          {
+            "name": "Remove VMs",
+            "script": "./scripts/Remove-CyberLabVMs.ps1 -Force",
+            "timeout": 10,
+            "continueOnError": true
+          },
+          {
+            "name": "Clean Deployment Share",
+            "script": "./scripts/Remove-DeploymentShare.ps1",
+            "timeout": 5,
+            "continueOnError": true
+          }
+        ]
+      }
+    ]
+  },
+  "virtualMachines": [
+    {
+      "name": "DC01",
+      "role": "Domain Controller",
+      "os": "Windows Server 2022",
+      "cpu": 2,
+      "ram": 4096,
+      "disk": 60,
+      "ephemeral": true
+    },
+    {
+      "name": "SOC-SIEM01",
+      "role": "SIEM Server",
+      "os": "Ubuntu Server 22.04",
+      "cpu": 2,
+      "ram": 4096,
+      "disk": 60,
+      "ephemeral": true
+    },
+    {
+      "name": "SOC-WIN01",
+      "role": "Test Workstation",
+      "os": "Windows 10 Enterprise",
+      "cpu": 2,
+      "ram": 4096,
+      "disk": 40,
+      "ephemeral": true
+    }
+  ],
+  "deployment": {
+    "mode": "ZeroTouch",
+    "timeout": 120,
+    "parallelDeployment": true,
+    "validationRequired": true,
+    "failFast": true
+  },
+  "notifications": {
+    "enabled": true,
+    "channels": [
+      {
+        "type": "email",
+        "recipients": ["devops@company.com"],
+        "events": ["failure", "success"]
+      },
+      {
+        "type": "slack",
+        "webhook": "${SLACK_WEBHOOK_URL}",
+        "channel": "#ci-cd-alerts",
+        "events": ["failure"]
+      }
+    ]
+  },
+  "integrations": {
+    "github": {
+      "enabled": true,
+      "statusChecks": true,
+      "requiredChecks": ["validate", "test"]
+    },
+    "azure_devops": {
+      "enabled": false,
+      "project": "CyberLab",
+      "pipeline": "cyberlab-ci"
+    },
+    "jenkins": {
+      "enabled": false,
+      "jobName": "cyberlab-deployment"
+    }
+  },
+  "environment": {
+    "variables": {
+      "CYBERLAB_VERSION": "${BUILD_VERSION}",
+      "DEPLOYMENT_ENV": "CI",
+      "LOG_LEVEL": "Debug"
+    },
+    "secrets": [
+      "DOMAIN_ADMIN_PASSWORD",
+      "SLACK_WEBHOOK_URL",
+      "AZURE_DEVOPS_PAT"
+    ]
+  },
+  "features": {
+    "parallelTesting": true,
+    "screenshotOnFailure": true,
+    "videoCaptureOnFailure": false,
+    "retainLogsOnSuccess": false,
+    "compressArtifacts": true
+  }
+}
+
+################################################################################
+# END OF FILES
+# 
+# DIRECTORY STRUCTURE TO CREATE:
+# 
+# CyberHydrationKit/
+# ├── LICENSE
+# ├── .gitignore
+# ├── CHANGELOG.md
+# ├── CyberHydrationKit.psd1
+# ├── CyberHydrationKit.psm1
+# ├── README.md (use your existing file)
+# ├── CONTRIBUTING.md (use your existing file)
+# ├── .github/
+# │   ├── workflows/
+# │   │   └── ci.yml
+# │   └── markdown-link-check-config.json
+# ├── scripts/
+# │   ├── Install-Dependencies.ps1
+# │   ├── Deploy-CyberLab.ps1
+# │   ├── New-CyberHydrationSetup.ps1
+# │   └── Test-CyberLabHealth.ps1
+# └── config/
+#     ├── default-deployment.json
+#     ├── enterprise-config.json
+#     ├── cloud-aws-config.json
+#     └── ci-cd-config.json
+#
+# NEXT STEPS:
+# 1. Create the directory structure
+# 2. Copy each file content to its location (between ===== markers)
+# 3. Add your README.md and CONTRIBUTING.md
+# 4. Initialize git: git init
+# 5. Commit: git add . && git commit -m "Initial commit"
+# 6. Push to GitHub
+################################################################################

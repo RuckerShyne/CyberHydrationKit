@@ -1,0 +1,221 @@
+{
+  "name": "AWS Cloud Cybersecurity Lab",
+  "description": "Cloud-native deployment on AWS with auto-scaling",
+  "version": "2.0.0",
+  "platform": {
+    "type": "Cloud",
+    "provider": "AWS",
+    "region": "us-east-1",
+    "availabilityZones": ["us-east-1a", "us-east-1b"],
+    "requirements": {
+      "accountType": "standard",
+      "estimatedMonthlyCost": 1500,
+      "requiredServices": ["EC2", "VPC", "S3", "CloudWatch", "Systems Manager"]
+    }
+  },
+  "domains": ["SOC", "IR"],
+  "infrastructure": {
+    "vpc": {
+      "cidr": "10.0.0.0/16",
+      "enableDnsHostnames": true,
+      "enableDnsSupport": true
+    },
+    "subnets": [
+      {
+        "name": "Management-Public",
+        "cidr": "10.0.1.0/24",
+        "az": "us-east-1a",
+        "public": true
+      },
+      {
+        "name": "Management-Private",
+        "cidr": "10.0.2.0/24",
+        "az": "us-east-1b",
+        "public": false
+      },
+      {
+        "name": "SOC",
+        "cidr": "10.0.40.0/24",
+        "az": "us-east-1a",
+        "public": false
+      },
+      {
+        "name": "IR",
+        "cidr": "10.0.60.0/24",
+        "az": "us-east-1b",
+        "public": false
+      }
+    ],
+    "securityGroups": [
+      {
+        "name": "management-sg",
+        "description": "Management access",
+        "rules": [
+          {
+            "type": "ingress",
+            "protocol": "tcp",
+            "port": 3389,
+            "source": "0.0.0.0/0",
+            "description": "RDP access"
+          },
+          {
+            "type": "ingress",
+            "protocol": "tcp",
+            "port": 22,
+            "source": "0.0.0.0/0",
+            "description": "SSH access"
+          }
+        ]
+      },
+      {
+        "name": "internal-sg",
+        "description": "Internal communication",
+        "rules": [
+          {
+            "type": "ingress",
+            "protocol": "all",
+            "source": "10.0.0.0/16",
+            "description": "VPC internal traffic"
+          }
+        ]
+      }
+    ]
+  },
+  "instances": [
+    {
+      "name": "DC01",
+      "role": "Domain Controller",
+      "ami": "Windows_Server-2022-English-Full-Base",
+      "instanceType": "t3.medium",
+      "subnet": "Management-Private",
+      "securityGroups": ["management-sg", "internal-sg"],
+      "userData": "bootstrap/dc01-userdata.ps1",
+      "tags": {
+        "Environment": "CyberLab",
+        "Role": "Infrastructure"
+      }
+    },
+    {
+      "name": "JUMP01",
+      "role": "Jump Box",
+      "ami": "Windows_Server-2022-English-Full-Base",
+      "instanceType": "t3.medium",
+      "subnet": "Management-Public",
+      "elasticIp": true,
+      "securityGroups": ["management-sg"],
+      "userData": "bootstrap/jump01-userdata.ps1",
+      "tags": {
+        "Environment": "CyberLab",
+        "Role": "Access"
+      }
+    }
+  ],
+  "autoScaling": {
+    "enabled": true,
+    "groups": [
+      {
+        "name": "soc-workstations",
+        "instanceType": "t3.medium",
+        "minSize": 1,
+        "maxSize": 10,
+        "desiredCapacity": 2,
+        "subnet": "SOC",
+        "scalingPolicies": [
+          {
+            "type": "schedule",
+            "schedule": "0 8 * * MON-FRI",
+            "desiredCapacity": 5
+          },
+          {
+            "type": "schedule",
+            "schedule": "0 18 * * MON-FRI",
+            "desiredCapacity": 1
+          }
+        ]
+      }
+    ]
+  },
+  "storage": {
+    "s3Buckets": [
+      {
+        "name": "cyberlab-logs",
+        "versioning": true,
+        "encryption": "AES256",
+        "lifecycle": {
+          "transitionToIA": 30,
+          "transitionToGlacier": 90,
+          "expiration": 365
+        }
+      },
+      {
+        "name": "cyberlab-artifacts",
+        "versioning": true,
+        "encryption": "AES256"
+      }
+    ]
+  },
+  "deployment": {
+    "mode": "CloudFormation",
+    "stackName": "CyberLabStack",
+    "capabilities": ["CAPABILITY_IAM"],
+    "onFailure": "ROLLBACK",
+    "timeout": 60
+  },
+  "costOptimization": {
+    "spotInstances": {
+      "enabled": true,
+      "percentage": 50,
+      "fallbackToOnDemand": true
+    },
+    "scheduledShutdown": {
+      "enabled": true,
+      "schedule": "0 20 * * *",
+      "excludeTags": {
+        "AlwaysOn": "true"
+      }
+    }
+  },
+  "backup": {
+    "enabled": true,
+    "service": "AWS Backup",
+    "schedule": "cron(0 5 ? * * *)",
+    "retention": 7
+  },
+  "monitoring": {
+    "cloudWatch": {
+      "enabled": true,
+      "detailedMonitoring": true,
+      "logGroups": [
+        "/aws/ec2/cyberlab",
+        "/aws/lambda/cyberlab"
+      ]
+    },
+    "alarms": [
+      {
+        "name": "HighCPU",
+        "metric": "CPUUtilization",
+        "threshold": 80,
+        "evaluationPeriods": 2
+      },
+      {
+        "name": "DiskSpace",
+        "metric": "DiskSpaceUtilization",
+        "threshold": 90,
+        "evaluationPeriods": 1
+      }
+    ]
+  },
+  "features": {
+    "systemsManager": {
+      "enabled": true,
+      "runCommand": true,
+      "sessionManager": true,
+      "patchManager": true
+    },
+    "terraform": {
+      "backend": "s3",
+      "stateBucket": "cyberlab-terraform-state",
+      "lockTable": "cyberlab-terraform-locks"
+    }
+  }
+}

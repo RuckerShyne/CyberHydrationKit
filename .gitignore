@@ -1,0 +1,104 @@
+# Cybersecurity Lab Hydration Kit .gitignore
+
+# Deployment outputs
+/DS/
+/ISO/
+*.iso
+*.wim
+
+# Logs and reports
+/Reports/
+*.log
+*.html
+health_*.json
+deployment_*.json
+
+# Credentials and secrets
+*.key
+*.pem
+*.pfx
+credentials.json
+secrets.json
+.env
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+~$*
+
+# PowerShell
+*.ps1xml
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python (for any Python scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Build artifacts
+/build/
+/dist/
+/out/
+
+# User-specific files
+local-config.json
+personal-notes.md
+
+# Test outputs
+/TestResults/
+coverage/
+*.trx
+
+# Downloaded dependencies
+/Downloads/
+/Setup/
+/Software/
+
+# Virtual machine files
+*.vhd
+*.vhdx
+*.vmdk
+*.qcow2
+/VMs/
+
+# Backup files
+backup/
+*.backup
+
+# Sensitive documentation
+/private/
+/confidential/

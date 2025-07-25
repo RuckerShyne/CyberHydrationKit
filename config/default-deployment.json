@@ -1,0 +1,119 @@
+{
+  "name": "Default Cybersecurity Lab Deployment",
+  "description": "Basic local lab setup with SOC domain for learning",
+  "version": "2.0.0",
+  "platform": {
+    "type": "Local",
+    "hypervisor": "Hyper-V",
+    "requirements": {
+      "minimumRAM": 16,
+      "recommendedRAM": 32,
+      "minimumStorage": 500,
+      "recommendedStorage": 1000
+    }
+  },
+  "domains": ["SOC"],
+  "network": {
+    "mode": "NAT",
+    "segments": [
+      {
+        "name": "Management",
+        "subnet": "192.168.10.0/24",
+        "gateway": "192.168.10.1",
+        "dhcpRange": "192.168.10.100-192.168.10.200"
+      },
+      {
+        "name": "SOC",
+        "subnet": "192.168.40.0/24",
+        "gateway": "192.168.40.1",
+        "dhcpRange": "192.168.40.100-192.168.40.200"
+      }
+    ]
+  },
+  "virtualMachines": [
+    {
+      "name": "DC01",
+      "role": "Domain Controller",
+      "os": "Windows Server 2022",
+      "cpu": 2,
+      "ram": 4096,
+      "disk": 100,
+      "network": "Management",
+      "autoStart": true
+    },
+    {
+      "name": "JUMP01",
+      "role": "Jump Box",
+      "os": "Windows Server 2022",
+      "cpu": 2,
+      "ram": 4096,
+      "disk": 100,
+      "network": "Management",
+      "autoStart": true
+    },
+    {
+      "name": "LOG01",
+      "role": "Log Server",
+      "os": "Ubuntu Server 22.04",
+      "cpu": 2,
+      "ram": 4096,
+      "disk": 100,
+      "network": "Management",
+      "autoStart": true
+    },
+    {
+      "name": "SOC-SIEM01",
+      "role": "SIEM Server",
+      "os": "Ubuntu Server 22.04",
+      "cpu": 4,
+      "ram": 8192,
+      "disk": 200,
+      "network": "SOC",
+      "domain": "SOC",
+      "autoStart": true
+    },
+    {
+      "name": "SOC-WIN01",
+      "role": "SOC Workstation",
+      "os": "Windows 10 Enterprise",
+      "cpu": 2,
+      "ram": 4096,
+      "disk": 80,
+      "network": "SOC",
+      "domain": "SOC",
+      "autoStart": false
+    }
+  ],
+  "deployment": {
+    "mode": "LiteTouch",
+    "timeout": 120,
+    "parallelDeployment": false,
+    "validationRequired": true
+  },
+  "credentials": {
+    "administrator": {
+      "username": "Administrator",
+      "password": "P@ssw0rd123!",
+      "mustChangeOnFirstLogon": true
+    },
+    "domain": {
+      "name": "cybersec.lab",
+      "netbios": "CYBERSEC",
+      "adminPassword": "P@ssw0rd123!"
+    }
+  },
+  "features": {
+    "fsm": {
+      "enabled": false,
+      "learningPaths": ["soc_analyst_l1"]
+    },
+    "scenarios": {
+      "autoStart": false,
+      "defaultScenarios": ["alert_triage", "log_analysis"]
+    },
+    "monitoring": {
+      "enabled": true,
+      "healthCheckInterval": 30
+    }
+  }
+}

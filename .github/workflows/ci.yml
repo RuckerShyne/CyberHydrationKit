@@ -1,0 +1,125 @@
+name: Cybersecurity Lab CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly validation
+
+jobs:
+  validate-powershell:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run PSScriptAnalyzer
+      shell: pwsh
+      run: |
+        Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+        $results = Invoke-ScriptAnalyzer -Path . -Recurse -ExcludeRule PSAvoidUsingWriteHost
+        if ($results) {
+          $results | Format-Table -AutoSize
+          throw "PSScriptAnalyzer found issues"
+        }
+    
+    - name: Test PowerShell Scripts
+      shell: pwsh
+      run: |
+        # Test that all PowerShell scripts have valid syntax
+        Get-ChildItem -Path . -Filter *.ps1 -Recurse | ForEach-Object {
+          Write-Host "Testing syntax: $($_.FullName)"
+          $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $_.FullName -Raw), [ref]$null)
+        }
+
+  validate-json:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Validate JSON files
+      run: |
+        find . -name "*.json" -type f | while read file; do
+          echo "Validating: $file"
+          python -m json.tool "$file" > /dev/null || exit 1
+        done
+
+  validate-terraform:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.0
+    
+    - name: Terraform Format Check
+      run: |
+        if [ -d "terraform" ]; then
+          terraform fmt -check -recursive terraform/
+        fi
+    
+    - name: Terraform Init and Validate
+      run: |
+        if [ -d "terraform" ]; then
+          cd terraform
+          for dir in */; do
+            echo "Validating $dir"
+            cd "$dir"
+            terraform init -backend=false
+            terraform validate
+            cd ..
+          done
+        fi
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run GitLeaks
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Check for hardcoded secrets
+      run: |
+        # Basic check for common patterns
+        ! grep -r -E "(password|passwd|pwd)\s*=\s*[\"'][^\"']+[\"']" --include="*.ps1" --include="*.json" . || (echo "Found hardcoded passwords!" && exit 1)
+
+  documentation-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Check README links
+      uses: gaurav-nelson/github-action-markdown-link-check@v1
+      with:
+        config-file: '.github/markdown-link-check-config.json'
+        
+    - name: Spell check
+      uses: streetsidesoftware/cspell-action@v2
+      with:
+        files: |
+          **/*.md
+          **/*.ps1
+          
+  create-release-notes:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Generate Release Notes
+      run: |
+        echo "## Changes in this release" > release-notes.md
+        echo "" >> release-notes.md
+        git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD >> release-notes.md
+        
+    - name: Upload Release Notes
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-notes
+        path: release-notes.md

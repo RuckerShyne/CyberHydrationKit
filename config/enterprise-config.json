@@ -1,0 +1,198 @@
+{
+  "name": "Enterprise Cybersecurity Lab Deployment",
+  "description": "Full enterprise deployment with all security domains",
+  "version": "2.0.0",
+  "platform": {
+    "type": "Proxmox",
+    "cluster": {
+      "nodes": ["proxmox01", "proxmox02", "proxmox03"],
+      "storage": "shared-storage",
+      "ha": true
+    },
+    "requirements": {
+      "minimumRAM": 128,
+      "recommendedRAM": 256,
+      "minimumStorage": 2000,
+      "recommendedStorage": 4000
+    }
+  },
+  "domains": ["SOC", "IR", "RedTeam", "ThreatHunt"],
+  "network": {
+    "mode": "VLAN",
+    "segments": [
+      {
+        "name": "Management",
+        "vlan": 10,
+        "subnet": "192.168.10.0/24",
+        "gateway": "192.168.10.1",
+        "dhcpRange": "192.168.10.100-192.168.10.250"
+      },
+      {
+        "name": "DMZ",
+        "vlan": 20,
+        "subnet": "192.168.20.0/24",
+        "gateway": "192.168.20.1",
+        "dhcpRange": "192.168.20.100-192.168.20.250"
+      },
+      {
+        "name": "Internal",
+        "vlan": 30,
+        "subnet": "192.168.30.0/24",
+        "gateway": "192.168.30.1",
+        "dhcpRange": "192.168.30.100-192.168.30.250"
+      },
+      {
+        "name": "SOC",
+        "vlan": 40,
+        "subnet": "192.168.40.0/24",
+        "gateway": "192.168.40.1",
+        "dhcpRange": "192.168.40.100-192.168.40.250"
+      },
+      {
+        "name": "RedTeam",
+        "vlan": 50,
+        "subnet": "192.168.50.0/24",
+        "gateway": "192.168.50.1",
+        "dhcpRange": "192.168.50.100-192.168.50.250",
+        "isolated": true
+      },
+      {
+        "name": "IR",
+        "vlan": 60,
+        "subnet": "192.168.60.0/24",
+        "gateway": "192.168.60.1",
+        "dhcpRange": "192.168.60.100-192.168.60.250"
+      },
+      {
+        "name": "ThreatHunt",
+        "vlan": 70,
+        "subnet": "192.168.70.0/24",
+        "gateway": "192.168.70.1",
+        "dhcpRange": "192.168.70.100-192.168.70.250"
+      }
+    ],
+    "firewall": {
+      "enabled": true,
+      "defaultPolicy": "deny",
+      "rules": [
+        {
+          "name": "Allow Management to All",
+          "source": "Management",
+          "destination": "any",
+          "action": "allow"
+        },
+        {
+          "name": "Block RedTeam to Production",
+          "source": "RedTeam",
+          "destination": ["Management", "Internal"],
+          "action": "deny"
+        }
+      ]
+    }
+  },
+  "virtualMachines": [
+    {
+      "name": "PFW01",
+      "role": "pfSense Firewall",
+      "os": "pfSense",
+      "cpu": 2,
+      "ram": 2048,
+      "disk": 20,
+      "network": ["all"],
+      "ha": true,
+      "priority": 1
+    },
+    {
+      "name": "DC01",
+      "role": "Primary Domain Controller",
+      "os": "Windows Server 2022",
+      "cpu": 4,
+      "ram": 8192,
+      "disk": 100,
+      "network": "Management",
+      "ha": true,
+      "priority": 1
+    },
+    {
+      "name": "DC02",
+      "role": "Secondary Domain Controller",
+      "os": "Windows Server 2022",
+      "cpu": 4,
+      "ram": 8192,
+      "disk": 100,
+      "network": "Management",
+      "ha": true,
+      "priority": 2
+    }
+  ],
+  "deployment": {
+    "mode": "ZeroTouch",
+    "timeout": 240,
+    "parallelDeployment": true,
+    "maxParallelVMs": 10,
+    "validationRequired": false,
+    "retryOnFailure": true,
+    "maxRetries": 3
+  },
+  "highAvailability": {
+    "enabled": true,
+    "fencingEnabled": true,
+    "migrationThreshold": 2,
+    "groups": [
+      {
+        "name": "critical-infrastructure",
+        "members": ["DC01", "DC02", "PFW01"],
+        "policy": "priority"
+      },
+      {
+        "name": "security-tools",
+        "members": ["SOC-SIEM01", "SOC-EDR01", "HUNT-SPLUNK01"],
+        "policy": "distributed"
+      }
+    ]
+  },
+  "backup": {
+    "enabled": true,
+    "schedule": "0 2 * * *",
+    "retention": 7,
+    "destination": "backup-storage"
+  },
+  "monitoring": {
+    "enabled": true,
+    "prometheus": true,
+    "grafana": true,
+    "alerts": {
+      "email": "soc@company.com",
+      "slack": "#cyber-lab-alerts"
+    }
+  },
+  "features": {
+    "fsm": {
+      "enabled": true,
+      "learningPaths": ["soc_analyst_l1", "incident_responder", "threat_hunter_advanced"],
+      "multiUser": true,
+      "ldapIntegration": true
+    },
+    "scenarios": {
+      "autoStart": true,
+      "scheduler": {
+        "enabled": true,
+        "defaultSchedule": "business_hours"
+      },
+      "library": "enterprise"
+    },
+    "automation": {
+      "caldera": true,
+      "atomicRedTeam": true,
+      "mitreIntegration": true
+    }
+  },
+  "compliance": {
+    "frameworks": ["NIST", "ISO27001"],
+    "logging": {
+      "auditLevel": "verbose",
+      "retention": 365,
+      "encryption": true
+    }
+  }
+}
